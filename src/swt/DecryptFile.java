@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.custom.TableCursor;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -22,6 +21,7 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableColumn;
@@ -42,10 +42,11 @@ public class DecryptFile {
 	private Label decrypt_file_title;
 	private Text decrypt_file;
 	private Button selec_dectypt_file_buttlo;
-	private Text result_text;
 	private Label decrypt_result_title;
 	private Table table;
 	private List<TableColumn> tableColumns=new ArrayList<TableColumn>();
+	private int length = 0;
+
 	/**
 	 * Launch the application.
 	 * 
@@ -93,7 +94,7 @@ public class DecryptFile {
 			public void keyTraversed(TraverseEvent arg0) {
 			}
 		});
-		shell.setSize(720, 461);
+		shell.setSize(1145, 502);
 		shell.setText("SWT Application");
 
 		Button button = new Button(shell, SWT.NONE);
@@ -103,7 +104,6 @@ public class DecryptFile {
 				String privateKeyFilePaht = private_key_file.getText();
 				String decryptFilePath = decrypt_file.getText();
 				String key = "";
-				StringBuffer text = new StringBuffer();
 				BufferedReader br = null;
 				InputStream keyIn = null;
 				InputStream in = null;
@@ -135,16 +135,14 @@ public class DecryptFile {
 					String tempString="";
 					List<String> resultStrList=new ArrayList<String>();
 					while (null!=(tempString = decodeBr.readLine())) {
-						text.append(tempString);
 						resultStrList.add(tempString);
-						text.append("\n");
 					}
-					result_text.setText(text.toString());
 					for (int i = 0; i < resultStrList.size(); i++) {
 						String string = resultStrList.get(i);
 						if(null!=string){
 							String[] split = string.split("\\|\\+\\|");
 							if(i<1){
+								length=split.length;
 								for (int j = 0; j < split.length; j++) {
 									tableColumns.get(j+1).setText(split[j]);
 									int length = split[j].length();
@@ -152,6 +150,19 @@ public class DecryptFile {
 								}
 								tableColumns.get(0).setText("序号");
 								tableColumns.get(0).setWidth(44);
+							}else{
+								if (split.length == length) {
+									TableItem tableItem = new TableItem(table, SWT.NONE);
+									tableItem.setText(0, String.valueOf(table.indexOf(tableItem)));
+									for (int j = 0; j < split.length; j++) {
+										tableItem.setText(j+1, split[j]);
+									}
+								}else{
+									MessageBox msgBox = new MessageBox(shell);
+									msgBox.setText("数据字段有误");
+									msgBox.setMessage("数据字段个数与标题不匹配");
+									msgBox.open();
+								}
 							}
 							System.out.println();
 						}
@@ -253,21 +264,19 @@ public class DecryptFile {
 		selec_dectypt_file_buttlo.setText("浏览……");
 		selec_dectypt_file_buttlo.setBounds(364, 73, 60, 27);
 		
-		result_text = new Text(shell, SWT.MULTI | SWT.WRAP | SWT.V_SCROLL| SWT.H_SCROLL);
-		result_text.setBounds(82, 118, 582, 40);
-		
 		decrypt_result_title = new Label(shell, SWT.NONE);
 		decrypt_result_title.setText("解密结果：");
 		decrypt_result_title.setBounds(10, 118, 66, 17);
 		
 		table = new Table(shell, SWT.BORDER | SWT.FULL_SELECTION);
-		table.setBounds(82, 178, 582, 201);
+		table.setBounds(82, 118, 1028, 306);
 		table.setHeaderVisible(true);
 		table.setLinesVisible(true);
 		
 		for (int i = 0; i < 13; i++) {
 			TableColumn tableColumn = new TableColumn(table, SWT.NONE);
 			tableColumn.setWidth(44);
+			tableColumn.setMoveable(true); 
 			tableColumns.add(tableColumn);
 		}
 		
