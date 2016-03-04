@@ -3,12 +3,14 @@ package swt;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.MouseAdapter;
@@ -46,6 +48,10 @@ public class DecryptFile {
 	private Table table;
 	private List<TableColumn> tableColumns=new ArrayList<TableColumn>();
 	private int length = 0;
+	List<String> resultStrList=new ArrayList<String>();
+	private Button export_button;
+	private Text export_path;
+	private Button select_export_feil_path;
 
 	/**
 	 * Launch the application.
@@ -54,14 +60,14 @@ public class DecryptFile {
 	 */
 	public static void main(String[] args) {
 		try {
-			String str = "This is an test string";
-			String strKey = "This is an test key";
-			Map<String, Object> genKeyPair = RSAUtil.genKeyPair();
-			String privateKey = RSAUtil.getPrivateKey(genKeyPair);
-			String publicKey = RSAUtil.getPublicKey(genKeyPair);
-			byte[] encryptByPublicKey = RSAUtil.encryptByPrivateKey(str.getBytes(), privateKey);
-			byte[] decryptByPublicKey = RSAUtil.decryptByPublicKey(encryptByPublicKey, publicKey);
-			System.out.println(new String(decryptByPublicKey));
+//			String str = "This is an test string";
+//			String strKey = "This is an test key";
+//			Map<String, Object> genKeyPair = RSAUtil.genKeyPair();
+//			String privateKey = RSAUtil.getPrivateKey(genKeyPair);
+//			String publicKey = RSAUtil.getPublicKey(genKeyPair);
+//			byte[] encryptByPublicKey = RSAUtil.encryptByPrivateKey(str.getBytes(), privateKey);
+//			byte[] decryptByPublicKey = RSAUtil.decryptByPublicKey(encryptByPublicKey, publicKey);
+//			System.out.println(new String(decryptByPublicKey));
 			DecryptFile window = new DecryptFile();
 			window.open();
 		} catch (Exception e) {
@@ -95,7 +101,7 @@ public class DecryptFile {
 			}
 		});
 		shell.setSize(1145, 502);
-		shell.setText("SWT Application");
+		shell.setText("对帐文件解密 SWT Application");
 
 		Button button = new Button(shell, SWT.NONE);
 		button.addMouseListener(new MouseAdapter() {
@@ -133,9 +139,13 @@ public class DecryptFile {
 					isr = new InputStreamReader(decodeIn, "UTF-8");
 					decodeBr = new BufferedReader(isr);
 					String tempString="";
-					List<String> resultStrList=new ArrayList<String>();
+//					List<String> resultStrList=new ArrayList<String>();
+					resultStrList.clear();
 					while (null!=(tempString = decodeBr.readLine())) {
 						resultStrList.add(tempString);
+					}
+					for (String str : resultStrList) {
+						System.out.println(str);
 					}
 					for (int i = 0; i < resultStrList.size(); i++) {
 						String string = resultStrList.get(i);
@@ -153,7 +163,7 @@ public class DecryptFile {
 							}else{
 								if (split.length == length) {
 									TableItem tableItem = new TableItem(table, SWT.NONE);
-									tableItem.setText(0, String.valueOf(table.indexOf(tableItem)));
+									tableItem.setText(0, String.valueOf(table.indexOf(tableItem)+1));
 									for (int j = 0; j < split.length; j++) {
 										tableItem.setText(j+1, split[j]);
 									}
@@ -171,8 +181,16 @@ public class DecryptFile {
 					
 				} catch (IOException e1) {
 					e1.printStackTrace();
+					MessageBox msgBox = new MessageBox(shell);
+					msgBox.setText("解密失败");
+					msgBox.setMessage(e1.getLocalizedMessage());
+					msgBox.open();
 				} catch (Exception e1) {
 					e1.printStackTrace();
+					MessageBox msgBox = new MessageBox(shell);
+					msgBox.setText("解密失败");
+					msgBox.setMessage(e1.getLocalizedMessage());
+					msgBox.open();
 				} finally{
 					if(null!=decodeIn){
 						try {
@@ -273,6 +291,78 @@ public class DecryptFile {
 		table.setHeaderVisible(true);
 		table.setLinesVisible(true);
 		
+		export_button = new Button(shell, SWT.NONE);
+		export_button.setText("导出txt文件");
+		export_button.setBounds(595, 78, 89, 27);
+		export_button.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseDown(MouseEvent e) {
+				if("请选择导出目录...".equals(export_path.getText())){
+					MessageBox msgBox = new MessageBox(shell);
+					msgBox.setText("导出文件失败");
+					msgBox.setMessage("请选择导出文件目录");
+					msgBox.open();
+					return;
+				}
+				if(resultStrList.isEmpty()){
+					MessageBox msgBox = new MessageBox(shell);
+					msgBox.setText("导出文件失败");
+					msgBox.setMessage("请先解密后再导出");
+					msgBox.open();
+					return;
+				}
+				String textPath = export_path.getText();
+				if(!(textPath.endsWith(".TXT")||textPath.endsWith(".txt"))) textPath=textPath+".txt";
+				PrintWriter out = null;
+				try {
+					out = new PrintWriter(new FileOutputStream(textPath));
+					for (String string : resultStrList) {
+						out.print(string+"\n");
+					}
+					out.flush();
+					MessageBox msgBox = new MessageBox(shell);
+					msgBox.setText("导出文件成功");
+					msgBox.setMessage("导出文件成功\n文件目录是："+textPath);
+					msgBox.open();
+				} catch (FileNotFoundException e1) {
+					e1.printStackTrace();
+					MessageBox msgBox = new MessageBox(shell);
+					msgBox.setText("导出文件失败");
+					msgBox.setMessage("导出文件失败");
+					msgBox.open();
+					return;
+				}finally{
+					if (null != out) {
+						out.flush();
+						out.close();
+					}
+				}
+				
+			}
+		});
+		
+		export_path = new Text(shell, SWT.BORDER);
+		export_path.setText("请选择导出目录...");
+		export_path.setEditable(false);
+		export_path.setBackground(SWTResourceManager.getColor(SWT.COLOR_WHITE));
+		export_path.setBounds(595, 40, 249, 23);
+		
+		select_export_feil_path = new Button(shell, SWT.NONE);
+		select_export_feil_path.setText("浏览……");
+		select_export_feil_path.setBounds(866, 40, 60, 27);
+		select_export_feil_path.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				FileDialog dialog = new FileDialog(shell, SWT.OPEN);
+				dialog.setText("导出文件目录");
+				dialog.setFilterExtensions(new String[] { "*.txt", "*.*" });
+				String filePath = dialog.open();
+				if (null != dialog) {
+					export_path.setText(filePath);
+				}
+
+			}
+		});
 		for (int i = 0; i < 13; i++) {
 			TableColumn tableColumn = new TableColumn(table, SWT.NONE);
 			tableColumn.setWidth(44);
